@@ -1,0 +1,3 @@
+/01-Docker-Terraform/ny_taxi_postgres_data
+*.csv
+*.gz
