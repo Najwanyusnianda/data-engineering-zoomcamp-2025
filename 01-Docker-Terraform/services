@@ -23,3 +23,13 @@ docker run -it \
 
 
   cd /mnt/g/Programming/data-engineering-zoomcamp-2025/01-Docker-Terraform/ny_taxi_postgres_data
+
+
+  python ingest_data.py \
+	--user=pg-database\
+	--password=pg-database \
+	--host=pg-database \
+	--port=5432 \
+	--db=ny_taxi \
+	--table_name=yellow_taxi_trips \
+	--url="https://github.com/DataTalksClub/nyc-tlc-data/releases/download/yellow/yellow_tripdata_2021-01.csv.gz"

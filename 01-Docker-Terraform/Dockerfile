@@ -4,6 +4,6 @@ RUN apt-get install wget
 RUN pip install pandas sqlalchemy psycopg2
 
 WORKDIR /app
-COPY pipeline.py /app/pipeline.py 
+COPY ingest_data.py /app/ingest_data.py 
 
-ENTRYPOINT [ "python", "pipeline.py" ]
+ENTRYPOINT [ "python", "ingest_data.py" ]
