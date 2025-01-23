@@ -1,3 +1,13 @@
 /01-Docker-Terraform/ny_taxi_postgres_data
+/01-Docker-Terraform/terrademo/keys
 *.csv
 *.gz
+*.tfstate
+*.tfstate.*
+**.terraform
+**.terraform.lock.*
+**logs/
+**.env
+serving_dir
+.ipynb_checkpoints/
+
