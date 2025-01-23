@@ -18,24 +18,44 @@ def main(params):
         db=params.db
         table_name=params.table_name
         url=params.url
-        csv_name = 'output.csv.gz'
-        
+        csv_name = 'output.csv'
+        original_filename = os.path.basename(url)
+        if not original_filename:
+                original_filename = 'output.csv'
+
+        csv_name = original_filename
         #download the csv
+        # Download the file
         os.system(f"wget {url} -O {csv_name}")
-        
-        
-        
-        #df=pd.read_csv('yellow_tripdata_2021-01.csv',nrows=200)
-        engine=create_engine(f'postgresql://{user}:{password}@{host}:{port}/{db}')
-        #print(pd.io.sql.get_schema(df,name='yellow_taxi_data',con=engine))
-        
-        df_iter = pd.read_csv(csv_name, iterator=True, chunksize=100000, compression='gzip')
+
+        # Check if the file is compressed (.gz)
+        is_compressed = csv_name.endswith('.gz')
+
+        # Create a connection to the PostgreSQL database
+        engine = create_engine(f'postgresql://{user}:{password}@{host}:{port}/{db}')
+
+        # Read the file in chunks for large datasets
+        if is_compressed:
+            df_iter = pd.read_csv(csv_name, iterator=True, chunksize=100000, compression='gzip')
+        else:
+            df_iter = pd.read_csv(csv_name, iterator=True, chunksize=100000)
         
         df=next(df_iter)
         
         #change format from text to datetime
-        df.tpep_pickup_datetime = pd.to_datetime(df.tpep_pickup_datetime)
-        df.tpep_dropoff_datetime = pd.to_datetime(df.tpep_dropoff_datetime)
+        # Check if 'tpep_pickup_datetime' column exists in the DataFrame
+        if 'tpep_pickup_datetime' in df.columns:
+                df['tpep_pickup_datetime'] = pd.to_datetime(df['tpep_pickup_datetime'])
+                df['tpep_dropoff_datetime'] = pd.to_datetime(df['tpep_dropoff_datetime'])
+
+        # Check if 'lpep_pickup_datetime' column exists in the DataFrame
+        elif 'lpep_pickup_datetime' in df.columns:
+                df['lpep_pickup_datetime'] = pd.to_datetime(df['lpep_pickup_datetime'])
+                df['lpep_dropoff_datetime'] = pd.to_datetime(df['lpep_dropoff_datetime'])
+
+        # Handle the case where neither column exists
+        else:
+                print("Neither 'tpep_pickup_datetime' nor 'lpep_pickup_datetime' columns exist in the DataFrame.")            
         
         #input to sql only table column names
         df.head(n=0).to_sql(name=table_name, con=engine, if_exists='replace')
@@ -44,15 +64,34 @@ def main(params):
         df.to_sql(name=table_name, con=engine, if_exists='append')
 
         #while there is data in chunks, input chunks to db
-        while True: 
-                t_start = time()        
-                df = next(df_iter)      
-                df.tpep_pickup_datetime = pd.to_datetime(df.tpep_pickup_datetime)
-                df.tpep_dropoff_datetime = pd.to_datetime(df.tpep_dropoff_datetime)
+    # Insert remaining chunks (if any)
+        while True:
+            try:
+                t_start = time()
+                df = next(df_iter)
 
-                df.to_sql(name=table_name, con=engine, if_exists='append')      
-                t_end = time()  
-                print('inserted another chunk, took %.3f second' % (t_end - t_start))
+                # Convert datetime columns
+                if 'tpep_pickup_datetime' in df.columns:
+                    df['tpep_pickup_datetime'] = pd.to_datetime(df['tpep_pickup_datetime'])
+                    df['tpep_dropoff_datetime'] = pd.to_datetime(df['tpep_dropoff_datetime'])
+                elif 'lpep_pickup_datetime' in df.columns:
+                    df['lpep_pickup_datetime'] = pd.to_datetime(df['lpep_pickup_datetime'])
+                    df['lpep_dropoff_datetime'] = pd.to_datetime(df['lpep_dropoff_datetime'])
+                else:
+                    raise ValueError("Neither 'tpep_pickup_datetime' nor 'lpep_pickup_datetime' columns exist in the DataFrame.")
+
+                # Insert the chunk
+                df.to_sql(name=table_name, con=engine, if_exists='append')
+                t_end = time()
+                print('Inserted another chunk, took %.3f seconds' % (t_end - t_start))
+            except StopIteration:
+                print("All chunks processed.")
+                break
+            except Exception as e:
+                print(f"Error processing chunk: {e}")
+                break
+
+        print("Data ingestion completed successfully.")
 
 
 
