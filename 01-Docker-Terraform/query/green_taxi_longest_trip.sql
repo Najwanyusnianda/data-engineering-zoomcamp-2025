@@ -10,4 +10,3 @@ SELECT
     max_distance
 FROM max_trip_per_day
 ORDER BY max_distance DESC
-LIMIT 1;
