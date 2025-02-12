@@ -13,3 +13,5 @@ serving_dir
 
 02-Workflow-Ochestration/nodal-empire-447803-h7-a27dde3aa7d4.json
 02-Workflow-Ochestration/gcp_kv.yaml
+03-Data-Warehouse/homework/load_yellow_taxi_sct.py
+*.parquet
